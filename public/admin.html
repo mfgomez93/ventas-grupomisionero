@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Ventas Misionero</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --gold:#c9973a; --gold-light:#e8b84b; --cream:#fdf6e3; --dark:#1a1208; --dark-mid:#2d2010; --brown:#6b4c1e; --accent:#d4520a; --surface:#fff9ee; --border:#e8d5aa; --shadow:rgba(26,18,8,0.15); --green:#2d8a4e; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:var(--dark); color:var(--cream); min-height:100vh; display:flex; flex-direction:column; }
+  .login-screen { flex:1; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-box { background:var(--surface); color:var(--dark); border:2px solid var(--gold); border-radius:20px; padding:48px 40px; width:100%; max-width:380px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+  .login-box h1 { font-family:'Playfair Display',serif; font-size:1.6rem; color:var(--brown); margin-bottom:8px; }
+  .login-box p { font-size:0.85rem; color:#999; margin-bottom:28px; }
+  .login-box input { width:100%; padding:12px 16px; border:1.5px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:1rem; color:var(--dark); outline:none; margin-bottom:16px; }
+  .login-box input:focus { border-color:var(--gold); }
+  .btn-login { width:100%; padding:13px; background:var(--dark); color:var(--gold-light); border:none; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:700; cursor:pointer; letter-spacing:0.04em; }
+  .btn-login:hover { background:var(--dark-mid); }
+  .error-msg { color:var(--accent); font-size:0.85rem; margin-top:10px; }
+
+  .admin-screen { display:none; flex-direction:column; min-height:100vh; background:var(--cream); color:var(--dark); }
+  .admin-screen.show { display:flex; }
+  .admin-header { background:var(--dark); padding:20px 32px; display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid var(--gold); flex-wrap:wrap; gap:12px; }
+  .admin-header h1 { font-family:'Playfair Display',serif; font-size:1.4rem; color:var(--gold-light); }
+  .admin-header span { font-size:0.8rem; color:rgba(253,246,227,0.5); }
+  .btn-export { background:linear-gradient(135deg,var(--green) 0%,#1f6337 100%); color:#fff; border:none; padding:12px 28px; border-radius:50px; font-family:'DM Sans',sans-serif; font-size:0.92rem; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(45,138,78,0.4); transition:transform 0.15s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-export:hover { transform:translateY(-2px); }
+  .admin-body { padding:28px 24px; max-width:1100px; margin:0 auto; width:100%; }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; margin-bottom:32px; }
+  .stat-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; box-shadow:0 2px 12px var(--shadow); }
+  .stat-card .num { font-family:'Playfair Display',serif; font-size:2rem; font-weight:900; color:var(--accent); }
+  .stat-card .label { font-size:0.78rem; color:#999; text-transform:uppercase; letter-spacing:0.06em; margin-top:4px; }
+  .section-title { font-family:'Playfair Display',serif; font-size:1.1rem; color:var(--brown); margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid var(--border); }
+  .table-wrap { overflow-x:auto; margin-bottom:32px; }
+  table { width:100%; border-collapse:collapse; font-size:0.85rem; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px var(--shadow); }
+  th { background:var(--dark); color:var(--gold-light); padding:11px 14px; text-align:left; font-family:'Playfair Display',serif; font-size:0.78rem; letter-spacing:0.05em; white-space:nowrap; }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); color:var(--dark); white-space:nowrap; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:rgba(201,151,58,0.04); }
+  td.num { text-align:right; font-weight:600; }
+  td.zero { color:#ccc; text-align:right; }
+  .total-row td { background:rgba(201,151,58,0.12)!important; font-weight:700; color:var(--brown); }
+  .empty { text-align:center; padding:40px; color:#bbb; font-style:italic; }
+  .vendedor-badge { display:inline-block; background:var(--dark); color:var(--gold); padding:2px 8px; border-radius:20px; font-size:0.75rem; font-weight:600; }
+  .fecha { color:#bbb; font-size:0.78rem; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <h1>🔐 Panel Admin</h1>
+    <p>Ingresá la contraseña para ver las ventas</p>
+    <input type="password" id="password-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')login()">
+    <button class="btn-login" onclick="login()">Ingresar</button>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="admin-screen" id="admin-screen">
+  <div class="admin-header">
+    <div>
+      <h1>📊 Panel de Ventas</h1>
+      <span>Grupo Misionero San Francisco Solano</span>
+    </div>
+    <button class="btn-export" onclick="exportarExcel()">⬇ Exportar Excel</button>
+  </div>
+  <div class="admin-body">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="section-title">Detalle por vendedor</div>
+    <div class="table-wrap"><div id="tabla-detalle"></div></div>
+    <div class="section-title">Totales por producto</div>
+    <div class="table-wrap"><div id="tabla-totales"></div></div>
+  </div>
+</div>
+
+<script>
+const PRODUCTOS = ['Combo 1','Combo 2','Combo 3','Muzzarella','Especial','Napolitana','Calabresa','Fugazzeta'];
+let password = '';
+let datosVentas = [];
+
+async function login() {
+  password = document.getElementById('password-input').value;
+  const res = await fetch(`/api/admin/ventas?password=${encodeURIComponent(password)}`);
+  if(res.status===401) { document.getElementById('error-msg').textContent='Contraseña incorrecta'; return; }
+  datosVentas = await res.json();
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('admin-screen').classList.add('show');
+  renderAdmin();
+}
+
+function renderAdmin() {
+  const totalVendedores = datosVentas.length;
+  const totalCompradores = datosVentas.reduce((s,v)=>s+v.compradores.filter(c=>PRODUCTOS.some(p=>c.cantidades[p]>0)).length,0);
+  const totalItems = PRODUCTOS.reduce((s,p)=>s+datosVentas.reduce((s2,v)=>s2+v.compradores.reduce((s3,c)=>s3+(c.cantidades[p]||0),0),0),0);
+
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-card"><div class="num">${totalVendedores}</div><div class="label">Vendedores</div></div>
+    <div class="stat-card"><div class="num">${totalCompradores}</div><div class="label">Compradores</div></div>
+    <div class="stat-card"><div class="num">${totalItems}</div><div class="label">Unidades totales</div></div>
+  `;
+
+  // Tabla detalle
+  if(datosVentas.length===0) {
+    document.getElementById('tabla-detalle').innerHTML='<div class="empty">Aún no hay ventas registradas.</div>';
+    document.getElementById('tabla-totales').innerHTML='';
+    return;
+  }
+
+  let html=`<table><thead><tr><th>Vendedor</th><th>Comprador</th>${PRODUCTOS.map(p=>`<th>${p}</th>`).join('')}<th>Enviado</th></tr></thead><tbody>`;
+  datosVentas.forEach(v=>{
+    v.compradores.filter(c=>PRODUCTOS.some(p=>c.cantidades[p]>0)).forEach(c=>{
+      html+=`<tr><td><span class="vendedor-badge">${v.vendedor}</span></td><td>${c.nombre||'Sin nombre'}</td>
+        ${PRODUCTOS.map(p=>`<td class="${c.cantidades[p]>0?'num':'zero'}">${c.cantidades[p]>0?c.cantidades[p]:'—'}</td>`).join('')}
+        <td class="fecha">${new Date(v.fechaEnvio).toLocaleString('es-AR')}</td></tr>`;
+    });
+  });
+  const totales=PRODUCTOS.map(p=>datosVentas.reduce((s,v)=>s+v.compradores.reduce((s2,c)=>s2+(c.cantidades[p]||0),0),0));
+  html+=`<tr class="total-row"><td colspan="2">TOTAL GENERAL</td>${totales.map(t=>`<td class="num">${t||'—'}</td>`).join('')}<td></td></tr>`;
+  html+=`</tbody></table>`;
+  document.getElementById('tabla-detalle').innerHTML=html;
+
+  // Tabla totales por producto
+  let html2=`<table><thead><tr><th>Producto</th>${datosVentas.map(v=>`<th>${v.vendedor}</th>`).join('')}<th>TOTAL</th></tr></thead><tbody>`;
+  PRODUCTOS.forEach(p=>{
+    const porVendedor=datosVentas.map(v=>v.compradores.reduce((s,c)=>s+(c.cantidades[p]||0),0));
+    const total=porVendedor.reduce((a,b)=>a+b,0);
+    html2+=`<tr><td style="font-weight:600">${p}</td>${porVendedor.map(n=>`<td class="${n>0?'num':'zero'}">${n>0?n:'—'}</td>`).join('')}<td class="num" style="color:var(--accent);font-weight:700">${total||'—'}</td></tr>`;
+  });
+  html2+=`</tbody></table>`;
+  document.getElementById('tabla-totales').innerHTML=html2;
+}
+
+function exportarExcel() {
+  window.location.href=`/api/admin/exportar?password=${encodeURIComponent(password)}`;
+}
+</script>
+</body>
+</html>

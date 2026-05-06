@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Ventas — Grupo Misionero San Francisco Solano</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9973a; --gold-light: #e8b84b;
+    --cream: #fdf6e3; --dark: #1a1208; --dark-mid: #2d2010;
+    --brown: #6b4c1e; --accent: #d4520a;
+    --surface: #fff9ee; --border: #e8d5aa;
+    --shadow: rgba(26,18,8,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--dark);
+    min-height: 100vh;
+    background-image: radial-gradient(ellipse at 10% 20%, rgba(201,151,58,0.12) 0%, transparent 50%),
+                      radial-gradient(ellipse at 90% 80%, rgba(212,82,10,0.08) 0%, transparent 50%);
+  }
+  header {
+    background: var(--dark); color: var(--cream);
+    padding: 28px 32px 24px; text-align: center;
+    border-bottom: 3px solid var(--gold); position: relative; overflow: hidden;
+  }
+  header::before {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg,transparent,transparent 40px,rgba(201,151,58,0.04) 40px,rgba(201,151,58,0.04) 41px);
+  }
+  header h1 { font-family:'Playfair Display',serif; font-size:clamp(1.4rem,4vw,2rem); font-weight:900; color:var(--gold-light); position:relative; }
+  header p { font-size:0.82rem; color:rgba(253,246,227,0.6); margin-top:4px; letter-spacing:0.08em; text-transform:uppercase; position:relative; }
+  .container { max-width:860px; margin:0 auto; padding:28px 20px 60px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px; margin-bottom:24px; box-shadow:0 4px 20px var(--shadow); }
+  .card-title { font-family:'Playfair Display',serif; font-size:1.15rem; font-weight:700; color:var(--brown); margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:8px; }
+  label { display:block; font-size:0.82rem; font-weight:600; color:var(--brown); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:6px; }
+  input[type="text"] { width:100%; padding:11px 15px; border:1.5px solid var(--border); border-radius:8px; background:#fff; font-family:'DM Sans',sans-serif; font-size:0.95rem; color:var(--dark); transition:border-color 0.2s,box-shadow 0.2s; outline:none; }
+  input[type="text"]:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,151,58,0.15); }
+  input[type="text"]::placeholder { color:#bbb; }
+  .compradores-list { display:flex; flex-direction:column; gap:18px; }
+  .comprador-card { background:#fff; border:1.5px solid var(--border); border-radius:12px; overflow:hidden; }
+  .comprador-header { background:linear-gradient(135deg,var(--dark) 0%,var(--dark-mid) 100%); padding:13px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .comprador-num { font-family:'Playfair Display',serif; font-size:0.75rem; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.1em; white-space:nowrap; }
+  .comprador-header input[type="text"] { background:transparent; border:none; border-bottom:1.5px solid rgba(201,151,58,0.4); border-radius:0; color:var(--cream); font-weight:500; padding:4px 6px; flex:1; }
+  .comprador-header input[type="text"]:focus { border-bottom-color:var(--gold-light); box-shadow:none; }
+  .comprador-header input[type="text"]::placeholder { color:rgba(253,246,227,0.35); }
+  .btn-remove { background:rgba(212,82,10,0.2); border:1px solid rgba(212,82,10,0.4); color:#ff8a60; border-radius:6px; padding:4px 10px; font-size:0.78rem; font-weight:600; cursor:pointer; transition:background 0.2s; white-space:nowrap; }
+  .btn-remove:hover { background:rgba(212,82,10,0.4); }
+  .comprador-body { padding:16px 18px; }
+  .productos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+  .producto-item { display:flex; align-items:center; justify-content:space-between; background:var(--cream); border:1px solid var(--border); border-radius:8px; padding:8px 12px; gap:10px; }
+  .producto-nombre { font-size:0.85rem; font-weight:500; color:var(--dark); flex:1; }
+  .qty-control { display:flex; align-items:center; gap:4px; }
+  .qty-btn { width:26px; height:26px; border-radius:50%; border:1.5px solid var(--gold); background:transparent; color:var(--gold); font-size:1rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.15s,color 0.15s; line-height:1; }
+  .qty-btn:hover { background:var(--gold); color:#fff; }
+  .qty-display { min-width:24px; text-align:center; font-weight:700; font-size:0.95rem; color:var(--dark); }
+  .btn-add-comprador { width:100%; padding:13px; background:transparent; border:2px dashed var(--gold); border-radius:10px; color:var(--brown); font-family:'DM Sans',sans-serif; font-size:0.92rem; font-weight:600; cursor:pointer; transition:background 0.2s,color 0.2s; margin-top:4px; letter-spacing:0.03em; }
+  .btn-add-comprador:hover { background:rgba(201,151,58,0.1); color:var(--dark); }
+  .resumen-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+  .resumen-table th { background:var(--dark); color:var(--gold-light); font-family:'Playfair Display',serif; font-size:0.8rem; text-align:left; padding:10px 14px; letter-spacing:0.05em; }
+  .resumen-table td { padding:9px 14px; border-bottom:1px solid var(--border); color:var(--dark); }
+  .resumen-table tr:last-child td { border-bottom:none; }
+  .resumen-table tr:nth-child(even) td { background:rgba(201,151,58,0.05); }
+  .resumen-table .num { text-align:right; font-weight:600; }
+  .empty-msg { text-align:center; color:#bbb; font-size:0.88rem; padding:20px 0; font-style:italic; }
+  .export-section { text-align:center; margin-top:8px; }
+  .btn-export { background:linear-gradient(135deg,var(--accent) 0%,#b54000 100%); color:#fff; border:none; padding:15px 40px; border-radius:50px; font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:700; cursor:pointer; letter-spacing:0.04em; box-shadow:0 6px 24px rgba(212,82,10,0.35); transition:transform 0.15s,box-shadow 0.15s; display:inline-flex; align-items:center; gap:10px; }
+  .btn-export:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(212,82,10,0.45); }
+  .btn-export:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+  .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--dark); color:var(--gold-light); padding:12px 26px; border-radius:50px; font-size:0.88rem; font-weight:600; border:1px solid var(--gold); opacity:0; transition:transform 0.35s cubic-bezier(.34,1.56,.64,1),opacity 0.35s; z-index:999; white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  .toast.error { border-color:var(--accent); color:#ff8a60; }
+  .success-overlay { display:none; position:fixed; inset:0; background:rgba(26,18,8,0.85); z-index:1000; align-items:center; justify-content:center; }
+  .success-overlay.show { display:flex; }
+  .success-box { background:var(--surface); border:2px solid var(--gold); border-radius:20px; padding:48px 40px; text-align:center; max-width:400px; width:90%; }
+  .success-box .check { font-size:3.5rem; margin-bottom:16px; }
+  .success-box h2 { font-family:'Playfair Display',serif; font-size:1.6rem; color:var(--brown); margin-bottom:10px; }
+  .success-box p { color:#888; font-size:0.92rem; line-height:1.6; }
+  @media(max-width:500px) { .productos-grid{grid-template-columns:1fr 1fr;} .card{padding:18px 14px;} .comprador-body{padding:12px 14px;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Venta a Beneficio</h1>
+  <p>Grupo Misionero San Francisco Solano — Pquia. Santa Rosa de Lima</p>
+</header>
+<div class="container">
+  <div class="card">
+    <div class="card-title"><span>👤</span> Datos del Vendedor</div>
+    <label for="vendedor">Tu nombre completo</label>
+    <input type="text" id="vendedor" placeholder="Ingresá tu nombre completo">
+  </div>
+  <div class="card">
+    <div class="card-title"><span>🛒</span> Compradores y Pedidos</div>
+    <div class="compradores-list" id="compradores-list"></div>
+    <button class="btn-add-comprador" onclick="agregarComprador()">＋ Agregar comprador</button>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>📋</span> Resumen de mis ventas</div>
+    <div id="resumen-container"></div>
+  </div>
+  <div class="export-section">
+    <button class="btn-export" id="btn-enviar" onclick="enviarVentas()">
+      <span>✔</span> Confirmar y enviar mis ventas
+    </button>
+  </div>
+</div>
+
+<div class="success-overlay" id="success-overlay">
+  <div class="success-box">
+    <div class="check">✅</div>
+    <h2>¡Ventas registradas!</h2>
+    <p>Tus ventas fueron enviadas correctamente.<br>Podés cerrar esta página.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PRODUCTOS = ['Combo 1','Combo 2','Combo 3','Muzzarella','Especial','Napolitana','Calabresa','Fugazzeta'];
+let compradores = [];
+let nextId = 1;
+
+function agregarComprador() {
+  compradores.push({ id: nextId++, nombre: '', cantidades: Object.fromEntries(PRODUCTOS.map(p=>[p,0])) });
+  renderCompradores();
+}
+
+function eliminarComprador(id) {
+  compradores = compradores.filter(c => c.id !== id);
+  renderCompradores();
+}
+
+function actualizarNombre(id, val) {
+  const c = compradores.find(c=>c.id===id);
+  if(c) c.nombre = val;
+  actualizarResumen();
+}
+
+function cambiarCantidad(id, producto, delta) {
+  const c = compradores.find(c=>c.id===id);
+  if(!c) return;
+  c.cantidades[producto] = Math.max(0,(c.cantidades[producto]||0)+delta);
+  document.getElementById(`qty-${id}-${producto.replace(/\s/g,'_')}`).textContent = c.cantidades[producto];
+  actualizarResumen();
+}
+
+function renderCompradores() {
+  const list = document.getElementById('compradores-list');
+  list.innerHTML = '';
+  if(compradores.length===0) {
+    list.innerHTML='<p class="empty-msg">Aún no agregaste compradores.</p>';
+    actualizarResumen(); return;
+  }
+  compradores.forEach((c,idx) => {
+    const div = document.createElement('div');
+    div.className='comprador-card';
+    div.innerHTML=`
+      <div class="comprador-header">
+        <span class="comprador-num">Comprador ${idx+1}</span>
+        <input type="text" placeholder="Nombre del comprador" value="${c.nombre}" oninput="actualizarNombre(${c.id},this.value)">
+        <button class="btn-remove" onclick="eliminarComprador(${c.id})">✕ Quitar</button>
+      </div>
+      <div class="comprador-body">
+        <div class="productos-grid">
+          ${PRODUCTOS.map(p=>`
+            <div class="producto-item">
+              <span class="producto-nombre">${p}</span>
+              <div class="qty-control">
+                <button class="qty-btn" onclick="cambiarCantidad(${c.id},'${p}',-1)">−</button>
+                <span class="qty-display" id="qty-${c.id}-${p.replace(/\s/g,'_')}">${c.cantidades[p]||0}</span>
+                <button class="qty-btn" onclick="cambiarCantidad(${c.id},'${p}',1)">+</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+  actualizarResumen();
+}
+
+function actualizarResumen() {
+  const container = document.getElementById('resumen-container');
+  const filas = compradores.filter(c=>PRODUCTOS.some(p=>c.cantidades[p]>0));
+  if(filas.length===0) { container.innerHTML='<p class="empty-msg">Registrá cantidades para ver el resumen.</p>'; return; }
+  const totales = Object.fromEntries(PRODUCTOS.map(p=>[p,0]));
+  filas.forEach(c=>PRODUCTOS.forEach(p=>totales[p]+=c.cantidades[p]||0));
+  container.innerHTML=`<table class="resumen-table"><thead><tr><th>Comprador</th>${PRODUCTOS.map(p=>`<th>${p}</th>`).join('')}</tr></thead><tbody>
+    ${filas.map(c=>`<tr><td>${c.nombre||'<em style="color:#bbb">Sin nombre</em>'}</td>${PRODUCTOS.map(p=>`<td class="num">${c.cantidades[p]>0?c.cantidades[p]:'—'}</td>`).join('')}</tr>`).join('')}
+    <tr style="background:rgba(201,151,58,0.12)"><td style="font-weight:700;color:var(--brown)">TOTAL</td>${PRODUCTOS.map(p=>`<td class="num" style="font-weight:700;color:var(--accent)">${totales[p]>0?totales[p]:'—'}</td>`).join('')}</tr>
+  </tbody></table>`;
+}
+
+async function enviarVentas() {
+  const vendedor = document.getElementById('vendedor').value.trim();
+  if(!vendedor) { showToast('⚠ Ingresá tu nombre antes de enviar','error'); return; }
+  const conVentas = compradores.filter(c=>PRODUCTOS.some(p=>c.cantidades[p]>0));
+  if(conVentas.length===0) { showToast('⚠ No registraste ninguna venta','error'); return; }
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled=true; btn.innerHTML='<span>⏳</span> Enviando...';
+
+  try {
+    const res = await fetch('/api/ventas', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ vendedor, compradores })
+    });
+    if(res.ok) {
+      document.getElementById('success-overlay').classList.add('show');
+    } else {
+      throw new Error();
+    }
+  } catch {
+    showToast('❌ Error al enviar. Intentá de nuevo.','error');
+    btn.disabled=false; btn.innerHTML='<span>✔</span> Confirmar y enviar mis ventas';
+  }
+}
+
+function showToast(msg, tipo='') {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(tipo?' '+tipo:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+agregarComprador();
+</script>
+</body>
+</html>

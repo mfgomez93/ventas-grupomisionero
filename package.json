@@ -1,0 +1,13 @@
+{
+  "name": "ventas-misionero",
+  "version": "1.0.0",
+  "description": "Registro de ventas - Grupo Misionero San Francisco Solano",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "xlsx": "^0.18.5"
+  }
+}
