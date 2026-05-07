@@ -46,11 +46,8 @@
   .empty { text-align:center; padding:40px; color:#bbb; font-style:italic; }
   .vendedor-badge { display:inline-block; background:var(--dark); color:var(--gold); padding:2px 8px; border-radius:20px; font-size:0.75rem; font-weight:600; }
   .fecha { color:#bbb; font-size:0.78rem; }
-
-  /* Edición inline */
-  .td-editable { position:relative; }
   .td-editable input[type="number"] { width:56px; padding:3px 6px; border:1.5px solid var(--gold); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.85rem; font-weight:600; text-align:center; color:var(--dark); outline:none; background:#fffbe8; }
-  .td-editable input[type="text"] { width:120px; padding:3px 6px; border:1.5px solid var(--gold); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.85rem; color:var(--dark); outline:none; background:#fffbe8; }
+  .td-editable input[type="text"] { width:130px; padding:3px 6px; border:1.5px solid var(--gold); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.85rem; color:var(--dark); outline:none; background:#fffbe8; }
   .btn-edit { background:transparent; border:1px solid var(--gold); color:var(--brown); border-radius:6px; padding:3px 9px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
   .btn-edit:hover { background:rgba(201,151,58,0.15); }
   .btn-save { background:var(--green); border:none; color:#fff; border-radius:6px; padding:3px 9px; font-size:0.75rem; font-weight:600; cursor:pointer; white-space:nowrap; }
@@ -60,8 +57,6 @@
   .btn-del { background:transparent; border:1px solid rgba(212,82,10,0.4); color:var(--accent); border-radius:6px; padding:3px 9px; font-size:0.75rem; cursor:pointer; }
   .btn-del:hover { background:rgba(212,82,10,0.1); }
   .acciones-col { display:flex; gap:5px; align-items:center; }
-
-  /* Toast */
   .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--dark); color:var(--gold-light); padding:12px 26px; border-radius:50px; font-size:0.88rem; font-weight:600; border:1px solid var(--gold); opacity:0; transition:transform 0.35s cubic-bezier(.34,1.56,.64,1),opacity 0.35s; z-index:999; white-space:nowrap; }
   .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
   .toast.error { border-color:var(--accent); color:#ff8a60; }
@@ -93,7 +88,7 @@
   </div>
   <div class="admin-body">
     <div class="stats-grid" id="stats-grid"></div>
-    <div class="section-title">Detalle por vendedor <span style="font-size:0.8rem;font-weight:400;color:#aaa;font-family:'DM Sans',sans-serif">— Hacé clic en ✏️ para editar una fila</span></div>
+    <div class="section-title">Detalle por vendedor <span style="font-size:0.8rem;font-weight:400;color:#aaa;font-family:'DM Sans',sans-serif">— Hacé clic en ✏️ para editar o 🗑 para eliminar</span></div>
     <div class="table-wrap"><div id="tabla-detalle"></div></div>
     <div class="section-title">Totales por producto</div>
     <div class="table-wrap"><div id="tabla-totales"></div></div>
@@ -106,7 +101,7 @@
 const PRODUCTOS = ['Combo 1','Combo 2','Combo 3','Muzzarella','Especial','Napolitana','Calabresa','Fugazzeta'];
 let password = '';
 let datosVentas = [];
-let filaEditando = null; // { vendedorNombre, compradorIdx }
+let filaEditando = null;
 
 async function login() {
   password = document.getElementById('password-input').value;
@@ -126,10 +121,24 @@ async function recargarDatos() {
   showToast('✓ Datos actualizados','ok');
 }
 
+// Calcula vendedores y compradores activos (con al menos 1 venta)
+function calcularStats() {
+  const vendedoresActivos = datosVentas.filter(v =>
+    v.compradores.some(c => PRODUCTOS.some(p => (c.cantidades[p]||0) > 0))
+  );
+  const totalVendedores = vendedoresActivos.length;
+  const totalCompradores = vendedoresActivos.reduce((s,v) =>
+    s + v.compradores.filter(c => PRODUCTOS.some(p => (c.cantidades[p]||0) > 0)).length, 0
+  );
+  const totalItems = PRODUCTOS.reduce((s,p) =>
+    s + datosVentas.reduce((s2,v) =>
+      s2 + v.compradores.reduce((s3,c) => s3 + (c.cantidades[p]||0), 0), 0), 0
+  );
+  return { totalVendedores, totalCompradores, totalItems };
+}
+
 function renderAdmin() {
-  const totalVendedores = datosVentas.length;
-  const totalCompradores = datosVentas.reduce((s,v)=>s+v.compradores.filter(c=>PRODUCTOS.some(p=>c.cantidades[p]>0)).length,0);
-  const totalItems = PRODUCTOS.reduce((s,p)=>s+datosVentas.reduce((s2,v)=>s2+v.compradores.reduce((s3,c)=>s3+(c.cantidades[p]||0),0),0),0);
+  const { totalVendedores, totalCompradores, totalItems } = calcularStats();
 
   document.getElementById('stats-grid').innerHTML=`
     <div class="stat-card"><div class="num">${totalVendedores}</div><div class="label">Vendedores</div></div>
@@ -137,18 +146,22 @@ function renderAdmin() {
     <div class="stat-card"><div class="num">${totalItems}</div><div class="label">Unidades totales</div></div>
   `;
 
-  if(datosVentas.length===0) {
+  // Filtrar vendedores que tienen al menos un comprador con ventas
+  const vendedoresConVentas = datosVentas.filter(v =>
+    v.compradores.some(c => PRODUCTOS.some(p => (c.cantidades[p]||0) > 0))
+  );
+
+  if(vendedoresConVentas.length===0) {
     document.getElementById('tabla-detalle').innerHTML='<div class="empty">Aún no hay ventas registradas.</div>';
     document.getElementById('tabla-totales').innerHTML='';
     return;
   }
 
-  // Tabla detalle con edición
   let html=`<table><thead><tr><th>Vendedor</th><th>Comprador</th>${PRODUCTOS.map(p=>`<th>${p}</th>`).join('')}<th>Acciones</th></tr></thead><tbody>`;
 
   datosVentas.forEach((v, vi) => {
     v.compradores.forEach((c, ci) => {
-      if(!PRODUCTOS.some(p=>c.cantidades[p]>0)) return;
+      if(!PRODUCTOS.some(p=>(c.cantidades[p]||0)>0)) return;
       const esEditando = filaEditando && filaEditando.vi===vi && filaEditando.ci===ci;
 
       if(esEditando) {
@@ -180,10 +193,10 @@ function renderAdmin() {
   html+=`</tbody></table>`;
   document.getElementById('tabla-detalle').innerHTML=html;
 
-  // Tabla totales por producto
-  let html2=`<table><thead><tr><th>Producto</th>${datosVentas.map(v=>`<th>${v.vendedor}</th>`).join('')}<th>TOTAL</th></tr></thead><tbody>`;
+  // Tabla totales por producto (solo vendedores con ventas)
+  let html2=`<table><thead><tr><th>Producto</th>${vendedoresConVentas.map(v=>`<th>${v.vendedor}</th>`).join('')}<th>TOTAL</th></tr></thead><tbody>`;
   PRODUCTOS.forEach(p=>{
-    const porVendedor=datosVentas.map(v=>v.compradores.reduce((s,c)=>s+(c.cantidades[p]||0),0));
+    const porVendedor=vendedoresConVentas.map(v=>v.compradores.reduce((s,c)=>s+(c.cantidades[p]||0),0));
     const total=porVendedor.reduce((a,b)=>a+b,0);
     html2+=`<tr><td style="font-weight:600">${p}</td>${porVendedor.map(n=>`<td class="${n>0?'num':'zero'}">${n>0?n:'—'}</td>`).join('')}<td class="num" style="color:var(--accent);font-weight:700">${total||'—'}</td></tr>`;
   });
@@ -194,7 +207,6 @@ function renderAdmin() {
 function editarFila(vi, ci) {
   filaEditando = { vi, ci };
   renderAdmin();
-  // Foco en el campo nombre
   setTimeout(()=>{ const el=document.getElementById('edit-nombre'); if(el) el.focus(); },50);
 }
 
@@ -207,15 +219,12 @@ async function guardarFila(vi, ci) {
   const nombreNuevo = document.getElementById('edit-nombre').value.trim();
   const cantidadesNuevas = {};
   PRODUCTOS.forEach(p => {
-    const val = parseInt(document.getElementById(`edit-${p.replace(/\s/g,'_')}`).value) || 0;
-    cantidadesNuevas[p] = val;
+    cantidadesNuevas[p] = parseInt(document.getElementById(`edit-${p.replace(/\s/g,'_')}`).value) || 0;
   });
 
-  // Actualizar localmente
   datosVentas[vi].compradores[ci].nombre = nombreNuevo;
   datosVentas[vi].compradores[ci].cantidades = cantidadesNuevas;
 
-  // Enviar al servidor
   const v = datosVentas[vi];
   const res = await fetch('/api/ventas', {
     method:'POST',
@@ -225,6 +234,11 @@ async function guardarFila(vi, ci) {
 
   filaEditando = null;
   if(res.ok) {
+    // Si el servidor eliminó el vendedor (quedó sin ventas), sacarlo del array local
+    const data = await res.json();
+    if(data.eliminado) {
+      datosVentas.splice(vi, 1);
+    }
     showToast('✓ Cambios guardados','ok');
   } else {
     showToast('❌ Error al guardar','error');
@@ -233,11 +247,17 @@ async function guardarFila(vi, ci) {
 }
 
 async function eliminarFila(vi, ci) {
-  if(!confirm(`¿Eliminar este comprador? Esta acción no se puede deshacer.`)) return;
+  if(!confirm('¿Eliminar este comprador? Esta acción no se puede deshacer.')) return;
 
   datosVentas[vi].compradores.splice(ci, 1);
 
   const v = datosVentas[vi];
+
+  // Verificar si el vendedor quedó sin compradores con ventas
+  const tieneVentasRestantes = v.compradores.some(c =>
+    PRODUCTOS.some(p => (c.cantidades[p]||0) > 0)
+  );
+
   const res = await fetch('/api/ventas', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -245,7 +265,13 @@ async function eliminarFila(vi, ci) {
   });
 
   if(res.ok) {
-    showToast('✓ Comprador eliminado','ok');
+    // Si el vendedor quedó sin ventas, eliminarlo del array local también
+    if(!tieneVentasRestantes) {
+      datosVentas.splice(vi, 1);
+      showToast('✓ Comprador eliminado — vendedor sin ventas, removido del panel','ok');
+    } else {
+      showToast('✓ Comprador eliminado','ok');
+    }
   } else {
     showToast('❌ Error al eliminar','error');
   }
@@ -260,9 +286,10 @@ function showToast(msg, tipo='') {
   const t=document.getElementById('toast');
   t.textContent=msg; t.className='toast'+(tipo?' '+tipo:'');
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  setTimeout(()=>t.classList.remove('show'),3500);
 }
 </script>
 </body>
 </html>
+
 
