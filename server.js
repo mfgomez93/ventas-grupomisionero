@@ -1,58 +1,56 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx');
+const { MongoClient } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'misionero2025';
-const DATA_FILE = path.join(__dirname, 'data', 'ventas.json');
+const MONGODB_URI = process.env.MONGODB_URI;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-if (!fs.existsSync(path.join(__dirname, 'data'))) {
-  fs.mkdirSync(path.join(__dirname, 'data'));
-}
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify([]));
+let db;
+
+async function conectarDB() {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  db = client.db('ventas_misionero');
+  console.log('MongoDB conectado');
 }
 
-function leerVentas() {
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-  catch { return []; }
-}
-
-function guardarVentas(ventas) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(ventas, null, 2));
+function coleccion() {
+  return db.collection('ventas');
 }
 
 // Vendedor envía sus datos
-app.post('/api/ventas', (req, res) => {
+app.post('/api/ventas', async (req, res) => {
   const { vendedor, compradores } = req.body;
   if (!vendedor || !compradores || !Array.isArray(compradores)) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
-  const ventas = leerVentas();
-  const idx = ventas.findIndex(v => v.vendedor.trim().toLowerCase() === vendedor.trim().toLowerCase());
   const entrada = { vendedor: vendedor.trim(), compradores, fechaEnvio: new Date().toISOString() };
-  if (idx >= 0) ventas[idx] = entrada;
-  else ventas.push(entrada);
-  guardarVentas(ventas);
+  await coleccion().updateOne(
+    { vendedor: { $regex: new RegExp(`^${vendedor.trim()}$`, 'i') } },
+    { $set: entrada },
+    { upsert: true }
+  );
   res.json({ ok: true });
 });
 
 // Admin: ver datos
-app.get('/api/admin/ventas', (req, res) => {
+app.get('/api/admin/ventas', async (req, res) => {
   if (req.query.password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'No autorizado' });
-  res.json(leerVentas());
+  const ventas = await coleccion().find({}).toArray();
+  res.json(ventas);
 });
 
 // Admin: exportar Excel
-app.get('/api/admin/exportar', (req, res) => {
+app.get('/api/admin/exportar', async (req, res) => {
   if (req.query.password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'No autorizado' });
 
-  const ventas = leerVentas();
+  const ventas = await coleccion().find({}).toArray();
   const PRODUCTOS = ['Combo 1','Combo 2','Combo 3','Muzzarella','Especial','Napolitana','Calabresa','Fugazzeta'];
   const wb = XLSX.utils.book_new();
 
@@ -84,4 +82,11 @@ app.get('/api/admin/exportar', (req, res) => {
   res.send(buffer);
 });
 
-app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+conectarDB().then(() => {
+  app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+}).catch(err => {
+  console.error('Error conectando MongoDB:', err);
+  process.exit(1);
+});
+
+  
