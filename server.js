@@ -30,6 +30,15 @@ app.post('/api/ventas', async (req, res) => {
   if (!vendedor || !compradores || !Array.isArray(compradores)) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
+  const tieneVentas = compradores.some(c =>
+    ['Combo 1','Combo 2','Combo 3','Muzzarella','Especial','Napolitana','Calabresa','Fugazzeta']
+    .some(p => (c.cantidades[p]||0) > 0)
+  );
+  if (!tieneVentas) {
+    // Si no quedan ventas, eliminar el vendedor directamente
+    await coleccion().deleteOne({ vendedor: { $regex: new RegExp(`^${vendedor.trim()}$`, 'i') } });
+    return res.json({ ok: true, eliminado: true });
+  }
   const entrada = { vendedor: vendedor.trim(), compradores, fechaEnvio: new Date().toISOString() };
   await coleccion().updateOne(
     { vendedor: { $regex: new RegExp(`^${vendedor.trim()}$`, 'i') } },
@@ -54,7 +63,6 @@ app.get('/api/admin/exportar', async (req, res) => {
   const PRODUCTOS = ['Combo 1','Combo 2','Combo 3','Muzzarella','Especial','Napolitana','Calabresa','Fugazzeta'];
   const wb = XLSX.utils.book_new();
 
-  // Hoja detalle
   const rows = [['Vendedor','Comprador',...PRODUCTOS,'Fecha envío']];
   ventas.forEach(v => {
     v.compradores.forEach(c => {
@@ -68,7 +76,6 @@ app.get('/api/admin/exportar', async (req, res) => {
   ws1['!cols'] = [{wch:22},{wch:22},...PRODUCTOS.map(()=>({wch:14})),{wch:22}];
   XLSX.utils.book_append_sheet(wb, ws1, 'Detalle');
 
-  // Hoja por vendedor
   const rows2 = [['Vendedor',...PRODUCTOS]];
   ventas.forEach(v => rows2.push([v.vendedor,...PRODUCTOS.map(p=>v.compradores.reduce((s,c)=>s+(c.cantidades[p]||0),0))]));
   const ws2 = XLSX.utils.aoa_to_sheet(rows2);
@@ -88,5 +95,6 @@ conectarDB().then(() => {
   console.error('Error conectando MongoDB:', err);
   process.exit(1);
 });
+
 
   
